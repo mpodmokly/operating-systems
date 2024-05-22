@@ -106,6 +106,5 @@ int main(int argc, char* argv[]){
 
 	free(threads);
 	free(args);
-
 	return 0;
 }

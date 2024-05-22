@@ -89,8 +89,8 @@ void* santa(void* arg){
 }
 
 int main(){
-    pthread_t reindeers_threads[REINDEERS];
     pthread_t santa_thread;
+    pthread_t reindeers_threads[REINDEERS];
     reindeer_args args[REINDEERS];
 
     pthread_create(&santa_thread, NULL, &santa, NULL);
@@ -106,6 +106,5 @@ int main(){
     }
 
     printf("Koniec\n");
-
     return 0;
 }
