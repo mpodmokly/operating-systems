@@ -11,7 +11,6 @@
 
 #define SHM_SIZE 16
 #define MSG_SIZE 10
-#define BUFF_SIZE 3
 
 void user(int shm_id, int sem_id){
     char* shm_ptr = shmat(shm_id, NULL, 0);
@@ -29,11 +28,8 @@ void user(int shm_id, int sem_id){
         operation.sem_op = -1;
         semop(sem_id, &operation, 1);
 
-        for (int i = 0; i < BUFF_SIZE; i++){
-            if (shm_ptr[i * (MSG_SIZE + 1)] == 0){
-                sprintf(shm_ptr + (i * (MSG_SIZE + 1)) * sizeof(char), "%s", message);
-                break;
-            }
+        if (shm_ptr[0] == 0){
+            sprintf(shm_ptr, "%s", message);
         }
         
         operation.sem_op = 1;
@@ -50,31 +46,10 @@ void printer(int shm_id, int sem_id){
     char buffor[MSG_SIZE];
 
     while (1){
-        for (int i = 0; i < BUFF_SIZE; i++){
-            operation.sem_op = -1;
-            semop(sem_id, &operation, 1);
+        operation.sem_op = -1;
+        semop(sem_id, &operation, 1);
 
-            if (shm_ptr[i * (MSG_SIZE + 1)] != 0){
-                //strcpy(buffor, shm_ptr + (i * (MSG_SIZE + 1)) * sizeof(char));
-                strncpy(buffor, shm_ptr + (i * (MSG_SIZE)) * sizeof(char), MSG_SIZE);
-
-                shm_ptr[i * (MSG_SIZE + 1)] = 0;
-                operation.sem_op = 1;
-                semop(sem_id, &operation, 1);
-
-                for (int i = 0; i < MSG_SIZE; i++){
-                    printf("%c", buffor[i]);
-                    sleep(1);
-                }
-                printf("\n");
-                break;
-            }
-            else {
-                operation.sem_op = 1;
-                semop(sem_id, &operation, 1);
-            }
-        }
-        /*if (shm_ptr[0] != 0){
+        if (shm_ptr[0] != 0){
             strcpy(buffor, shm_ptr);
 
             shm_ptr[0] = 0;
@@ -86,12 +61,16 @@ void printer(int shm_id, int sem_id){
                 sleep(1);
             }
             printf("\n");
-        }*/
+        }
+        else {
+            operation.sem_op = 1;
+            semop(sem_id, &operation, 1);
+        }
     }
 }
 
 int main(){
-    setbuf(stdout, NULL);
+    //setbuf(stdout, NULL);
     int n, m;
 
     printf("Enter number of users:\n");
@@ -100,12 +79,9 @@ int main(){
     scanf("%d", &m);
 
     key_t key = ftok("printers.c", 'p');
-    int shm_id = shmget(key, BUFF_SIZE * SHM_SIZE, IPC_CREAT | 0666);
+    int shm_id = shmget(key, SHM_SIZE, IPC_CREAT | 0666);
     char* shm_ptr = shmat(shm_id, NULL, 0);
-
-    for (int i = 0; i < BUFF_SIZE; i++){
-        shm_ptr[i * (MSG_SIZE + 1)] = 0;
-    }
+    shm_ptr[0] = 0;
 
     key = ftok("printers.c", 'q');
     int sem_id = semget(key, 1, IPC_CREAT | 0666);
