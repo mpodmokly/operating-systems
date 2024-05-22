@@ -1,4 +1,6 @@
-all: santa.c
+all: santa
+
+santa: santa.c
 	gcc -Wall santa.c -o santa -lpthread
 
 .PHONY: clean
