@@ -41,8 +41,6 @@ void* thread_fun(void* thread_arg){
 	return NULL;
 }
 
-
-
 int main(int argc, char* argv[]){
 	if (argc != 2){
         printf("Invalid number of arguments\n");
@@ -91,9 +89,6 @@ int main(int argc, char* argv[]){
 		}
 
 		usleep(500 * 1000);
-
-		// Step simulation
-		//update_grid(foreground, background);
 
 		tmp = foreground;
 		foreground = background;
