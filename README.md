@@ -1,13 +1,14 @@
 # Operating systems
 Programming in C in Linux operating system.
 ## Projects content
-**Lab01** - Makefile<br>
-**Lab02** - Libraries<br>
-**Lab03** - Files<br>
-**Lab04** - Processes<br>
-**Lab05** - Signals<br>
-**Lab06** - Pipes<br>
-**Lab07** - Inter-process communication (IPC) - message queues<br>
-**Lab08** - Inter-process communication (IPC) - semaphores and shared memory<br>
-**Lab09** - Threads<br>
-**Lab10** - Threads synchronization
+**Lab 1** - Makefile<br>
+**Lab 2** - Libraries<br>
+**Lab 3** - Files<br>
+**Lab 4** - Processes<br>
+**Lab 5** - Signals<br>
+**Lab 6** - Pipes<br>
+**Lab 7** - Inter-process communication (IPC) - message queues<br>
+**Lab 8** - Inter-process communication (IPC) - semaphores and shared memory<br>
+**Lab 9** - Threads<br>
+**Lab 10** - Threads synchronization<br>
+**Lab 11** - Sockets
