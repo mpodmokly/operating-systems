@@ -16,6 +16,7 @@
 #define MAX_CLIENTS 10
 #define MAX_NAME 20
 #define MAX_MSG 100
+#define EMPTY -1
 
 typedef struct {
     char name[MAX_NAME];
@@ -33,8 +34,9 @@ void* thread_fun(void* thread_arg){
     int new_socket = args->clients[args->id].new_socket;
     char buff[MAX_MSG];
     int len;
+    int running = 1;
 
-    while (1){
+    while (running){
         len = read(new_socket, buff, sizeof(buff));
         buff[len] = '\0';
         
@@ -42,17 +44,16 @@ void* thread_fun(void* thread_arg){
             char* names = (char*)malloc(*(args->clients_no) * MAX_NAME * sizeof(char));
             int offset = 0;
 
-            for (int i = 0; i < *(args->clients_no); i++){
-                strcpy(names + offset, args->clients[i].name);
-                offset += strlen(args->clients[i].name);
-
-                if (i < *(args->clients_no) - 1){
+            for (int i = 0; i < MAX_CLIENTS; i++){
+                if (args->clients[i].new_socket != EMPTY){
+                    strcpy(names + offset, args->clients[i].name);
+                    offset += strlen(args->clients[i].name);
                     names[offset] = '\n';
+                    offset++;
                 }
-                
-                offset++;
             }
 
+            names[strlen(names) - 1] = '\0';
             write(new_socket, names, strlen(names));
             free(names);
         }
@@ -61,12 +62,51 @@ void* thread_fun(void* thread_arg){
             strcpy(message, buff + 5);
             message[strlen(buff) - 5] = '\0';
 
-            for (int i = 0; i < *(args->clients_no); i++){
-                write(args->clients[i].new_socket, message, strlen(message));
+            for (int i = 0; i < MAX_CLIENTS; i++){
+                if (args->clients[i].new_socket != EMPTY){
+                    write(args->clients[i].new_socket, message, strlen(message));
+                }
             }
         }
+        else if (strncmp(buff, "2ONE ", 5) == 0){
+            char* name = strtok(buff, " ");
+            name = strtok(NULL, " ");
+            char* message = strtok(NULL, " ");
+            int found = 0;
+
+            for (int i = 0; i < MAX_CLIENTS; i++){
+                if (strcmp(args->clients[i].name, name) == 0 &&
+                        args->clients[i].new_socket != EMPTY){
+                    found = 1;
+                    write(args->clients[i].new_socket, message, strlen(message));
+                }
+            }
+
+            if (!found){
+                char* info = (char*)malloc(16 * MAX_NAME * sizeof(char));
+                strcpy(info, "No client named ");
+                strcat(info, name);
+                write(new_socket, info, strlen(info));
+                free(info);
+            }
+        }
+        else if (strcmp(buff, "ALIVE") == 0){
+            for (int i = 0; i < MAX_CLIENTS; i++){
+                if (args->clients[i].new_socket != EMPTY &&
+                        args->clients[i].new_socket != new_socket){
+                    write(args->clients[i].new_socket, buff, strlen(buff));
+                }
+            }
+        }
+        else if (strcmp(buff, "STOP") == 0){
+            char message[] = "end";
+            write(new_socket, message, strlen(message));
+            args->clients[args->id].new_socket = EMPTY;
+            (*(args->clients_no))--;
+            running = 0;
+        }
     }
-    
+
     return NULL;
 }
 
@@ -114,6 +154,10 @@ int main(int argc, char* argv[]){
     thread_args args[MAX_CLIENTS];
     int client_no = 0;
 
+    for (int i = 0; i < MAX_CLIENTS; i++){
+        clients[i].new_socket = EMPTY;
+    }
+
     while (1){
         struct sockaddr_in cli;
         memset(&cli, 0, sizeof(cli));
@@ -129,17 +173,22 @@ int main(int argc, char* argv[]){
 
         char comm[] = "accepted";
         write(new_socket, comm, strlen(comm));
-        
-        int len = read(new_socket, clients[client_no].name, sizeof(clients[client_no].name));
-        clients[client_no].name[len] = '\0';
 
-        clients[client_no].new_socket = new_socket;
-        args[client_no].id = client_no;
-        args[client_no].clients_no = &client_no;
-        args[client_no].clients = clients;
+        int idx = 0;
+        while (clients[idx].new_socket != EMPTY){
+            idx++;
+        }
+        
+        int len = read(new_socket, clients[idx].name, sizeof(clients[idx].name));
+        clients[idx].name[len] = '\0';
+
+        clients[idx].new_socket = new_socket;
+        args[idx].id = idx;
+        args[idx].clients_no = &client_no;
+        args[idx].clients = clients;
 
         client_no++;
-        pthread_create(&threads[client_no - 1], NULL, &thread_fun, &args[client_no - 1]);
+        pthread_create(&threads[idx], NULL, &thread_fun, &args[idx]);
     }
 
     close(server_fd);

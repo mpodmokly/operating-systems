@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
+#include <signal.h>
 
 #include <sys/socket.h>
 #include <sys/types.h>
@@ -13,15 +14,35 @@
 #define MAX_NAME 20
 #define MAX_MSG 100
 
+int server_link = -1;
+int running = 1;
+
+void handler(int sig){
+    char message[] = "STOP";
+
+    if (server_link != -1){
+        write(server_link, message, strlen(message));
+    }
+    
+    running = 0;
+}
+
 void* thread_fun(void* arg){
     int server_fd = *(int*)arg;
     char buff[MAX_MSG];
     int len;
+    int running = 1;
 
-    while (1){
+    while (running){
         len = read(server_fd, buff, sizeof(buff));
         buff[len] = '\0';
-        printf("%s\n", buff);
+
+        if (strcmp(buff, "end") == 0){
+            running = 0;
+        }
+        else {
+            printf("%s\n", buff);
+        }
     }
 
     return NULL;
@@ -32,6 +53,8 @@ int main(int argc, char* argv[]){
         printf("Invalid number of arguments\n");
         return 0;
     }
+
+    signal(SIGINT, handler);
 
     char name[MAX_NAME];
     strcpy(name, argv[1]);
@@ -45,6 +68,7 @@ int main(int argc, char* argv[]){
         free(address);
         return 0;
     }
+    server_link = server_fd;
 
     struct sockaddr_in srv;
     memset(&srv, 0, sizeof(srv));
@@ -81,9 +105,9 @@ int main(int argc, char* argv[]){
 
     pthread_t thread;
     pthread_create(&thread, NULL, &thread_fun, &server_fd);
-
+    
     printf("Type command:\n");
-    while (1){
+    while (running){
         fgets(buff, sizeof(buff), stdin);
         if (buff[strlen(buff) - 1] == '\n'){
             buff[strlen(buff) - 1] = '\0';
@@ -96,11 +120,24 @@ int main(int argc, char* argv[]){
         else if (strncmp(buff, "2ALL ", 5) == 0){
             printf("Message sent to all clients\n");
         }
+        else if (strncmp(buff, "2ONE ", 5) == 0){
+            char* token = strtok(buff, " ");
+            token = strtok(NULL, " ");
+            printf("Message sent to %s\n", token);
+        }
+        else if (strcmp(buff, "STOP") == 0){
+            printf("Client stops\n");
+            running = 0;
+        }
+        else if (strcmp(buff, "ALIVE") == 0){
+            printf("Checking clients\n");
+        }
         else {
             printf("Wrong command\n");
         }
     }
 
+    pthread_join(thread, NULL);
     close(server_fd);
     free(address);
     return 0;
