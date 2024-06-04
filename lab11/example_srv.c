@@ -11,13 +11,13 @@ int main(){
         return 0;
     }
 
-    struct sockaddr_in ser, cli;
-    memset(&ser, 0, sizeof(ser));
-    ser.sin_family = AF_INET;
-    ser.sin_port = htons(9000);
-    ser.sin_addr.s_addr = htonl(INADDR_ANY);// inet_addr("127.0.0.1")
+    struct sockaddr_in srv, cli;
+    memset(&srv, 0, sizeof(srv));
+    srv.sin_family = AF_INET;
+    srv.sin_port = htons(9000);
+    srv.sin_addr.s_addr = htonl(INADDR_ANY);// inet_addr("127.0.0.1")
 
-    int status = bind(gniazdo, (struct sockaddr*)&ser, sizeof ser);
+    int status = bind(gniazdo, (struct sockaddr*)&srv, sizeof srv);
     if (status == -1){
         printf("Bind error\n");
         return 0;
@@ -33,8 +33,9 @@ int main(){
     int no = 0;
     int end = 1;
     while (end){
+        memset(&cli, 0, sizeof(cli));
         int dlugosc = sizeof cli;
-        int gniazdo2 = accept(gniazdo, (struct sockaddr *) &cli, (socklen_t *) &dlugosc);
+        int gniazdo2 = accept(gniazdo, (struct sockaddr*) &cli, (socklen_t*) &dlugosc);
         if (gniazdo2 == -1){
             printf("Accept error\n");
             return 0;
