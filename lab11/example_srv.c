@@ -4,9 +4,9 @@
 #include <netinet/in.h>
 
 int main(){
-    int gniazdo = socket(AF_INET, SOCK_STREAM, 0);
+    int server_fd = socket(AF_INET, SOCK_STREAM, 0);
 
-    if (gniazdo == -1){
+    if (server_fd == -1){
         printf("Socket error\n");
         return 0;
     }
@@ -17,13 +17,13 @@ int main(){
     srv.sin_port = htons(9000);
     srv.sin_addr.s_addr = htonl(INADDR_ANY);// inet_addr("127.0.0.1")
 
-    int status = bind(gniazdo, (struct sockaddr*)&srv, sizeof srv);
+    int status = bind(server_fd, (struct sockaddr*)&srv, sizeof srv);
     if (status == -1){
         printf("Bind error\n");
         return 0;
     }
 
-    status = listen(gniazdo, 10);
+    status = listen(server_fd, 10);
     if (status == -1){
         printf("Listen error\n");
         return 0;
@@ -34,14 +34,14 @@ int main(){
     int end = 1;
     while (end){
         memset(&cli, 0, sizeof(cli));
-        int dlugosc = sizeof cli;
-        int gniazdo2 = accept(gniazdo, (struct sockaddr*) &cli, (socklen_t*) &dlugosc);
-        if (gniazdo2 == -1){
+        int len = sizeof cli;
+        int new_socket = accept(server_fd, (struct sockaddr*) &cli, (socklen_t*) &len);
+        if (new_socket == -1){
             printf("Accept error\n");
             return 0;
         }
 
-        read(gniazdo2, buff, sizeof(buff));
+        read(new_socket, buff, sizeof(buff));
         if (buff[0] == 'Q'){
             sprintf(buff, "ZGODA, SERWER KONCZY PRACE");
             end = 0;
@@ -53,11 +53,11 @@ int main(){
             sprintf(buff, "Nie rozumiem pytania");
         }
 
-        write(gniazdo2, buff, strlen(buff));
-        close(gniazdo2);
+        write(new_socket, buff, strlen(buff));
+        close(new_socket);
     }
 
-    close(gniazdo);
+    close(server_fd);
     printf("KONIEC DZIALANIA SERWERA");
     return 0;
 }
