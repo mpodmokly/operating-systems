@@ -4,12 +4,12 @@
 #include <unistd.h>
 #include <signal.h>
 
+#include <pthread.h>
 #include <sys/socket.h>
 #include <sys/types.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
 
-#include <pthread.h>
 
 #define MAX_NAME 20
 #define MAX_MSG 100
