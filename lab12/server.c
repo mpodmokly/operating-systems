@@ -60,10 +60,20 @@ int main(int argc, char* argv[]){
 
         if (bytes > 0){
             buff[bytes] = '\0';
+            char client_name[MAX_NAME];
 
-            if (strncmp(buff, "NEW ", 4) == 0){
+            int ptr = 0;
+            while (buff[ptr] != ' '){
+                client_name[ptr] = buff[ptr];
+                ptr++;
+            }
+
+            client_name[ptr] = '\0';
+            strcpy(buff, buff + ptr + 1);
+
+            if (strncmp(buff, "NEW", 3) == 0){
                 if (clients_no < MAX_CLIENTS){
-                    strcpy(clients[clients_no].name, buff + 4);
+                    strcpy(clients[clients_no].name, client_name);
                     clients[clients_no].addr = cli;
                     printf("%s connected\n", clients[clients_no].name);
                     clients_no++;
@@ -85,16 +95,80 @@ int main(int argc, char* argv[]){
                 }
 
                 names[strlen(names) - 1] = '\0';
-                //sendto(server_fd, names, strlen(names), 0,
-                    //(struct sockaddr*)&clients[])
+                int ptr = 0;
+                while (strcmp(clients[ptr].name, client_name) != 0){
+                    ptr++;
+                }
+
+                sendto(server_fd, names, strlen(names), 0,
+                    (struct sockaddr*)&clients[ptr].addr, sizeof(clients[ptr].addr));
                 free(names);
             }
+            else if (strncmp(buff, "2ALL ", 5) == 0 && strlen(buff) > 5){
+                for (int i = 0; i < clients_no; i++){
+                    if (strcmp(clients[i].name, client_name) != 0){
+                        sendto(server_fd, buff + 5, strlen(buff + 5), 0,
+                        (struct sockaddr*)&clients[i].addr, sizeof(clients[i].addr));
+                    }
+                }
+            }
+            else if (strncmp(buff, "2ONE ", 5) == 0 && strlen(buff) > 5){
+                char destination[MAX_NAME];
+                int ptr = 5;
+
+                while (buff[ptr] != ' '){
+                    destination[ptr - 5] = buff[ptr];
+                    ptr++;
+                }
+                destination[ptr - 5] = '\0';
+
+                int found = 0;
+                for (int i = 0; i < clients_no; i++){
+                    if (strcmp(clients[i].name, destination) == 0){
+                        sendto(server_fd, buff + ptr + 1, strlen(buff + ptr + 1), 0,
+                            (struct sockaddr*)&clients[i].addr, sizeof(clients[i].addr));
+                        found = 1;
+                        break;
+                    }
+                }
+
+                if (!found){
+                    char message[MAX_MSG] = "No client named ";
+                    strcat(message, destination);
+                    message[strlen(message)] = '\0';
+                    
+                    ptr = 0;
+                    while (strcmp(clients[ptr].name, client_name) != 0){
+                        ptr++;
+                    }
+
+                    sendto(server_fd, message, strlen(message), 0,
+                        (struct sockaddr*)&clients[ptr].addr, sizeof(clients[ptr].addr));
+                }
+            }
+            else if (strcmp(buff, "STOP") == 0){
+                printf("%s disconnected\n", client_name);
+                int idx = 0;
+
+                while (strcmp(clients[idx].name, client_name) != 0){
+                    idx++;
+                }
+
+                sendto(server_fd, buff, strlen(buff), 0,
+                    (struct sockaddr*)&clients[idx].addr, sizeof(clients[idx].addr));
+
+                for (int i = idx; i < clients_no - 1; i++){
+                    strcpy(clients[i].name, clients[i + 1].name);
+                    clients[i].addr = clients[i + 1].addr;
+                }
+
+                clients_no--;
+            }
             else {
-                printf("Wrong command\n%s\n", buff);
+                printf("Wrong command %s\n", buff);
             }
         }
     }
-
 
     close(server_fd);
     free(address);
