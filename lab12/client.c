@@ -14,7 +14,7 @@
 
 int server_fd = -1;
 int running = 1;
-int flag = 0;
+int sig_flag = 0;
 char name[MAX_NAME];
 struct sockaddr_in srv;
 
@@ -29,10 +29,11 @@ void handler(int sig){
             (struct sockaddr*)&srv, sizeof(srv));
     }
     running = 0;
-    flag = 1;
+    sig_flag = 1;
 }
 
 void* thread_fun(void* arg){
+    struct sockaddr_in srv = *(struct sockaddr_in*)arg;
     struct sockaddr_in cli;
     memset(&cli, 0, sizeof(cli));
     int addr_len = sizeof(cli);
@@ -42,7 +43,7 @@ void* thread_fun(void* arg){
         int bytes = recvfrom(server_fd, buff, sizeof(buff), 0,
             (struct sockaddr*)&cli, (socklen_t*)&addr_len);
         
-        if (flag){
+        if (sig_flag){
             printf("\nClient stops");
             fflush(stdout);
             continue;
@@ -50,12 +51,12 @@ void* thread_fun(void* arg){
         if (bytes > 0){
             buff[bytes] = '\0';
 
-            if (strcmp(buff, "STOP") == 0){
-                //printf("Client\n");
+            if (strcmp(buff, "ALIVE") == 0){
+                sendto(server_fd, buff, strlen(buff), 0,
+                    (struct sockaddr*)&srv, sizeof(srv));
             }
-            else {
-                printf("%s\n", buff);
-            }
+
+            printf("%s\n", buff);
         }
     }
     
@@ -96,7 +97,7 @@ int main(int argc, char* argv[]){
         (struct sockaddr*)&srv, sizeof(srv));
     
     pthread_t thread;
-    pthread_create(&thread, NULL, &thread_fun, NULL);
+    pthread_create(&thread, NULL, &thread_fun, &srv);
 
     char buff[MAX_MSG + MAX_NAME + 1];
     strcpy(buff, name);

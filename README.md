@@ -11,4 +11,5 @@ Programming in C in Linux operating system.
 **Lab 8** - Inter-process communication (IPC) - semaphores and shared memory<br>
 **Lab 9** - Threads<br>
 **Lab 10** - Threads synchronization<br>
-**Lab 11** - Sockets
+**Lab 11** - Sockets using TCP<br>
+**Lab 12** - Sockets using UDP

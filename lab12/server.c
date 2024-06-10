@@ -2,7 +2,9 @@
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
+#include <signal.h>
 
+#include <sys/time.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
@@ -16,6 +18,16 @@ typedef struct {
     struct sockaddr_in addr;
 } ClientData;
 
+int server_fd = -1;
+
+void handler(int sig){
+    if (server_fd != -1){
+        close(server_fd);
+        printf("\n");
+        exit(0);
+    }
+}
+
 int main(int argc, char* argv[]){
     if (argc != 3){
         printf("Invalid number of arguments\n");
@@ -26,13 +38,14 @@ int main(int argc, char* argv[]){
     strcpy(address, argv[1]);
     int port = atoi(argv[2]);
 
-    int server_fd = socket(AF_INET, SOCK_DGRAM, 0);
+    server_fd = socket(AF_INET, SOCK_DGRAM, 0);
     if (server_fd == -1){
         printf("Socket error\n");
         free(address);
         return 0;
     }
 
+    signal(SIGINT, handler);
     struct sockaddr_in srv;
     memset(&srv, 0, sizeof(srv));
     srv.sin_family = AF_INET;
@@ -163,6 +176,46 @@ int main(int argc, char* argv[]){
                 }
 
                 clients_no--;
+            }
+            else if (strcmp(buff, "ALIVE") == 0){
+                for (int i = 0; i < clients_no; i++){
+                    if (strcmp(clients[i].name, client_name) != 0){
+                        sendto(server_fd, buff, strlen(buff), 0,
+                            (struct sockaddr*)&clients[i].addr, sizeof(clients[i].addr));
+
+                        struct timeval timeout;
+                        timeout.tv_sec = 1;
+                        timeout.tv_usec = 0;
+
+                        fd_set fd;
+                        FD_ZERO(&fd);
+                        FD_SET(server_fd, &fd);
+
+                        status = select(server_fd + 1, &fd, NULL, NULL, &timeout);
+                        if (status == 0){
+                            printf("%s not alive\n", clients[i].name);
+                            printf("%s disconnected\n", clients[i].name);
+
+                            for (int j = i; j < clients_no - 1; j++){
+                                strcpy(clients[j].name, clients[j + 1].name);
+                                clients[j].addr = clients[j + 1].addr;
+                                if (j == clients_no - 2){
+                                    i--;
+                                }
+                            }
+
+                            clients_no--;
+                        }
+                        else if (status > 0){
+                            bytes = recvfrom(server_fd, buff, sizeof(buff), 0,
+                                (struct sockaddr*)&cli, (socklen_t*)&addr_len);
+                            if (bytes > 0){
+                                buff[bytes] = '\0';
+                                printf("%s alive\n", clients[i].name);
+                            }
+                        }
+                    }
+                }
             }
             else {
                 printf("Wrong command %s\n", buff);
