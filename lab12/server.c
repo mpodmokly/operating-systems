@@ -90,10 +90,15 @@ int main(int argc, char* argv[]){
                     clients[clients_no].addr = cli;
                     printf("%s connected\n", clients[clients_no].name);
                     clients_no++;
+
+                    char message[] = "connected";
+                    sendto(server_fd, message, strlen(message), 0,
+                        (struct sockaddr*)&cli, sizeof(cli));
                 }
                 else {
-                    //char message[] = ""
-                    //sendto(server_fd, )
+                    char message[] = "no space";
+                    sendto(server_fd, message, strlen(message), 0,
+                        (struct sockaddr*)&cli, sizeof(cli));
                 }
             }
             else if (strcmp(buff, "LIST") == 0){

@@ -13,7 +13,7 @@
 #define MSG_SIZE 10
 
 void user(int shm_id, int sem_id){
-    char* shm_ptr = shmat(shm_id, NULL, 0);
+    char* shm_ptr = (char*)shmat(shm_id, NULL, 0);
     srand(time(NULL) + getpid());
     char message[MSG_SIZE];
     struct sembuf operation;
@@ -80,7 +80,7 @@ int main(){
 
     key_t key = ftok("printers.c", 'p');
     int shm_id = shmget(key, SHM_SIZE, IPC_CREAT | 0666);
-    char* shm_ptr = shmat(shm_id, NULL, 0);
+    char* shm_ptr = (char*)shmat(shm_id, NULL, 0);
     shm_ptr[0] = 0;
 
     key = ftok("printers.c", 'q');
